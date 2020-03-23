@@ -1,0 +1,29 @@
+service: cloudwatch-lambda-to-splunk-hec
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  runtime: nodejs12.x
+  role: ${opt:iamRole}
+  region: us-east-1
+  vpc:
+    securityGroupIds:
+      - ${opt:securityGroupId}
+    subnetIds:
+      - ${opt:privateSubnetA}
+      - ${opt:privateSubnetB}
+      - ${opt:privateSubnetC}
+  stackTags:
+    Created-By: Serverless
+
+functions:
+  postToSplunkHec:
+    handler: handler.sendToSplunk
+    timeout: 60
+    memorySize: 512
+    environment:
+      LOG_GROUP_NAME_REGEX: "/(?:^\\/aws\\/lambda\\/somestring-)(?:[a-zA-Z\\d-]+)_(?:[a-zA-Z\\d-]+)_(?:[a-zA-Z\\d-]+)_([a-zA-Z\\d-])+/gm"
+      SPLUNK_HEC_URL: ${opt:splunkHecUrl}
+      ENVIRONMENT: ${self:provider.stage}
+      SECRET_MANAGER_ITEM_NAME: ${opt:secretManagerItemName}
+      SPLUNK_HEC_TOKEN: ${opt:splunkHecToken, ''} # Don't pass anything in for this value to use Secrets Manager instead (your IAM role should have the relevant secrets manager access too and the secret should be stored as Key: 'SPLUNK_HEC_TOKEN').
